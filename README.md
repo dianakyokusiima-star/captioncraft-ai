@@ -1,1 +1,0 @@
-# captioncraft-ai
