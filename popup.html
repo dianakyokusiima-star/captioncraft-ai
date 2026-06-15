@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CaptionCraft AI</title>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Variables ── */
+    :root {
+      --bg:        #ffffff;
+      --bg2:       #f5f4f2;
+      --bg3:       #ece9e4;
+      --bg-info:   #e6f1fb;
+      --bg-ok:     #eaf3de;
+      --bg-err:    #fcebeb;
+      --bg-warn:   #faeeda;
+      --txt:       #111110;
+      --txt2:      #6b6b6b;
+      --txt3:      #a3a3a3;
+      --info:      #0c447c;
+      --ok:        #3b6d11;
+      --err:       #a32d2d;
+      --warn:      #854f0b;
+      --bdr:       rgba(0,0,0,0.12);
+      --bdr2:      rgba(0,0,0,0.22);
+      --bdr-info:  #85b7eb;
+      --bdr-ok:    #97c459;
+      --bdr-err:   #f09595;
+      --r:         8px;
+      --r2:        12px;
+      --font:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* ── Base ── */
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--txt);
+      width: 400px;
+      min-height: 560px;
+      max-height: 600px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px 10px;
+      border-bottom: 0.5px solid var(--bdr);
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+    .header-left { line-height: 1.3; }
+    .header-title { font-size: 15px; font-weight: 600; }
+    .header-sub { font-size: 11px; color: var(--txt2); }
+    .plan-badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      border: 0.5px solid var(--bdr);
+      background: var(--bg2);
+      color: var(--txt2);
+    }
+    .plan-badge.pro { background: var(--bg-info); color: var(--info); border-color: var(--bdr-info); }
+
+    /* ── Nav tabs ── */
+    .nav {
+      display: flex;
+      gap: 2px;
+      padding: 8px 14px 0;
+      border-bottom: 0.5px solid var(--bdr);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav-btn {
+      font-size: 12px;
+      padding: 5px 10px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      color: var(--txt2);
+      border-bottom: 2px solid transparent;
+      white-space: nowrap;
+      font-family: var(--font);
+      transition: color 0.15s;
+    }
+    .nav-btn.active {
+      color: var(--txt);
+      border-bottom-color: var(--txt);
+      font-weight: 500;
+    }
+
+    /* ── Content ── */
+    .content { padding: 12px 14px; }
+
+    /* ── Usage bar ── */
+    .usage-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 10px;
+      background: var(--bg2);
+      border: 0.5px solid var(--bdr);
+      border-radius: var(--r);
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: var(--txt2);
+    }
+    .usage-bar a { color: var(--info); text-decoration: none; cursor: pointer; border: none; background: none; font-size: 12px; font-family: var(--font); }
+
+    /* ── Labels ── */
+    .lbl { font-size: 12px; font-weight: 500; color: var(--txt2); margin-bottom: 6px; display: block; }
+
+    /* ── Output type grid ── */
+    .type-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+    .type-btn {
+      padding: 7px 9px;
+      border: 0.5px solid var(--bdr);
+      border-radius: var(--r);
+      background: var(--bg);
+      cursor: pointer;
+      text-align: left;
+      font-family: var(--font);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .type-btn:hover { border-color: var(--bdr2); }
+    .type-btn.active { border: 2px solid var(--bdr-info); background: var(--bg-info); }
+    .type-btn .type-name { font-size: 12px; font-weight: 500; color: var(--txt); }
+    .type-btn.active .type-name { color: var(--info); }
+    .type-btn .type-pro { font-size: 10px; color: var(--warn); margin-top: 1px; }
+    .type-btn.locked { opacity: 0.6; }
+
+    /* ── Tone pills ── */
+    .tone-wrap { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    .tone-btn {
+      font-size: 11px;
+      padding: 4px 10px;
+      border: 0.5px solid var(--bdr);
+      border-radius: 20px;
+      background: transparent;
+      cursor: pointer;
+      color: var(--txt2);
+      font-family: var(--font);
+    }
+    .tone-btn.active { border: 2px solid var(--bdr-info); background: var(--bg-info); color: var(--info); font-weight: 500; }
+
+    /* ── Textarea ── */
+    textarea {
+      width: 100%;
+      min-height: 72px;
+      padding: 8px 10px;
+      border: 0.5px solid var(--bdr2);
+      border-radius: var(--r);
+      font-size: 13px;
+      font-family: var(--font);
+      resize: vertical;
+      background: var(--bg);
+      color: var(--txt);
+      outline: none;
+      margin-bottom: 10px;
+    }
+    textarea:focus { border-color: var(--bdr-info); }
+
+    /* ── Generate button ── */
+    .gen-btn {
+      width: 100%;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      border: 0.5px solid var(--bdr2);
+      border-radius: var(--r2);
+      background: var(--bg);
+      color: var(--txt);
+      cursor: pointer;
+      font-family: var(--font);
+      margin-bottom: 10px;
+      transition: background 0.15s;
+    }
+    .gen-btn:hover { background: var(--bg2); }
+    .gen-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Result box ── */
+    .result-box {
+      border: 0.5px solid var(--bdr);
+      border-radius: var(--r2);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 10px;
+      background: var(--bg2);
+      border-bottom: 0.5px solid var(--bdr);
+    }
+    .result-header span { font-size: 12px; font-weight: 500; color: var(--txt2); }
+    .copy-btn {
+      font-size: 11px;
+      padding: 3px 10px;
+      border: 0.5px solid var(--bdr2);
+      border-radius: var(--r);
+      background: var(--bg);
+      cursor: pointer;
+      font-family: var(--font);
+      color: var(--txt);
+    }
+    .copy-btn.copied { background: var(--bg-ok); color: var(--ok); border-color: var(--bdr-ok); }
+    .result-text {
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      color: var(--txt);
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    /* ── Messages ── */
+    .msg {
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: var(--r);
+      margin-bottom: 8px;
+    }
+    .msg.err  { background: var(--bg-err);  color: var(--err);  border: 0.5px solid var(--bdr-err); }
+    .msg.ok   { background: var(--bg-ok);   color: var(--ok);   border: 0.5px solid var(--bdr-ok); }
+    .msg.info { background: var(--bg-info); color: var(--info); border: 0.5px solid var(--bdr-info); }
+
+    /* ── Input fields ── */
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 0.5px solid var(--bdr2);
+      border-radius: var(--r);
+      font-size: 13px;
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--txt);
+      outline: none;
+      margin-bottom: 8px;
+    }
+    input:focus { border-color: var(--bdr-info); }
+
+    /* ── Action button ── */
+    .action-btn {
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 0.5px solid var(--bdr-info);
+      border-radius: var(--r);
+      background: var(--bg-info);
+      color: var(--info);
+      cursor: pointer;
+      font-family: var(--font);
+    }
+    .action-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .action-btn.secondary {
+      background: var(--bg2);
+      color: var(--txt);
+      border-color: var(--bdr2);
+    }
+
+    /* ── Cards ── */
+    .card {
+      border: 0.5px solid var(--bdr);
+      border-radius: var(--r2);
+      padding: 12px;
+      margin-bottom: 10px;
+      background: var(--bg);
+    }
+    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+    .card-sub { font-size: 12px; color: var(--txt2); margin-bottom: 10px; line-height: 1.6; }
+
+    /* ── Pricing cards ── */
+    .pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .price-card {
+      border: 0.5px solid var(--bdr);
+      border-radius: var(--r2);
+      padding: 10px;
+      position: relative;
+    }
+    .price-card.highlight { border: 2px solid var(--bdr-info); }
+    .price-badge {
+      position: absolute;
+      top: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      padding: 2px 7px;
+      background: var(--bg-info);
+      color: var(--info);
+      border-radius: 20px;
+      border: 0.5px solid var(--bdr-info);
+      white-space: nowrap;
+    }
+    .price-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .price-amount { font-size: 18px; font-weight: 600; }
+    .price-period { font-size: 10px; color: var(--txt2); }
+    .price-features { list-style: none; margin: 8px 0 10px; font-size: 11px; color: var(--txt2); line-height: 2; }
+    .price-features li::before { content: "✓ "; color: var(--ok); }
+    .price-cta {
+      display: block;
+      width: 100%;
+      padding: 7px 4px;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: var(--r);
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      font-family: var(--font);
+      border: 0.5px solid var(--bdr2);
+      background: var(--bg2);
+      color: var(--txt);
+    }
+    .price-cta.highlight-cta {
+      border-color: var(--bdr-info);
+      background: var(--bg-info);
+      color: var(--info);
+    }
+
+    /* ── Privacy sections ── */
+    .privacy-section { margin-bottom: 12px; padding-bottom: 12px; border-bottom: 0.5px solid var(--bdr); }
+    .privacy-section:last-child { border-bottom: none; }
+    .privacy-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .privacy-body { font-size: 12px; color: var(--txt2); line-height: 1.7; }
+
+    /* ── Footer ── */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      border-top: 0.5px solid var(--bdr);
+      font-size: 11px;
+      color: var(--txt2);
+    }
+    .footer button { font-size: 11px; color: var(--txt2); background: none; border: none; cursor: pointer; font-family: var(--font); }
+
+    /* ── Upgrade modal ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal {
+      background: var(--bg);
+      border-radius: var(--r2);
+      padding: 18px;
+      width: 340px;
+      border: 0.5px solid var(--bdr2);
+    }
+    .modal-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .modal-body { font-size: 13px; color: var(--txt2); margin-bottom: 14px; line-height: 1.6; }
+    .modal-actions { display: flex; flex-direction: column; gap: 7px; }
+
+    /* ── Hidden ── */
+    .hidden { display: none !important; }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--bdr2);
+      border-top-color: var(--txt2);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bdr2); border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════ -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-title">✦ CaptionCraft AI</div>
+    <div class="header-sub">Descriptions that convert</div>
+  </div>
+  <span id="planBadge" class="plan-badge">Free plan</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     NAV TABS
+═══════════════════════════════════════════════ -->
+<div class="nav">
+  <button class="nav-btn active" data-view="generator">Generator</button>
+  <button class="nav-btn" data-view="activate">Activate</button>
+  <button class="nav-btn" data-view="pricing">Pricing</button>
+  <button class="nav-btn" data-view="privacy">Privacy</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: GENERATOR
+═══════════════════════════════════════════════ -->
+<div id="view-generator" class="content">
+
+  <div id="usageBar" class="usage-bar">
+    <span id="usageText">3 free generations left today</span>
+    <button onclick="showView('pricing')">Upgrade for unlimited →</button>
+  </div>
+
+  <span class="lbl">Output type</span>
+  <div class="type-grid" id="typeGrid">
+    <!-- Populated by JS -->
+  </div>
+
+  <span class="lbl">Tone</span>
+  <div class="tone-wrap" id="toneWrap">
+    <!-- Populated by JS -->
+  </div>
+
+  <span class="lbl">Describe your product or topic</span>
+  <textarea id="inputText" placeholder="e.g. A self-help book for women who struggle with self-worth and boundaries..."></textarea>
+
+  <div id="genError" class="msg err hidden"></div>
+
+  <button class="gen-btn" id="genBtn" onclick="handleGenerate()">
+    ✦ Generate Copy
+  </button>
+
+  <div id="resultBox" class="result-box hidden">
+    <div class="result-header">
+      <span>✓ Your generated copy</span>
+      <button class="copy-btn" id="copyBtn" onclick="handleCopy()">Copy</button>
+    </div>
+    <div class="result-text" id="resultText"></div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: ACTIVATE LICENSE
+═══════════════════════════════════════════════ -->
+<div id="view-activate" class="content hidden">
+  <div class="card">
+    <div class="card-title">🔑 Activate your license</div>
+    <div class="card-sub">After purchasing on Payhip, you'll receive a license key by email. Enter it below to unlock your plan instantly.</div>
+    <span class="lbl">License key</span>
+    <input type="text" id="licenseInput" placeholder="e.g. PRO-XXXX-XXXX" />
+    <div id="licenseMsg" class="hidden"></div>
+    <button class="action-btn" id="activateBtn" onclick="handleActivate()">Activate key</button>
+  </div>
+  <div class="card" style="font-size:12px; color: var(--txt2); line-height:1.8;">
+    <strong style="color:var(--txt)">Current plan: </strong><span id="currentPlanLabel">Free</span><br>
+    <span id="planStatus">3 generations/day · KDP, Payhip, Instagram only.</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: PRICING
+═══════════════════════════════════════════════ -->
+<div id="view-pricing" class="content hidden">
+  <div class="card-title" style="margin-bottom:4px">Simple, honest pricing</div>
+  <div style="font-size:12px; color:var(--txt2); margin-bottom:12px">Start free. Upgrade when you need more.</div>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">Free</div>
+      <div><span class="price-amount">$0</span><span class="price-period"> forever</span></div>
+      <ul class="price-features">
+        <li>3/day</li>
+        <li>3 output types</li>
+        <li>All tones</li>
+        <li>Copy to clipboard</li>
+      </ul>
+      <div class="price-cta" style="cursor:default;opacity:0.6" id="freeCta">Current</div>
+    </div>
+
+    <div class="price-card highlight">
+      <div class="price-badge">Popular</div>
+      <div class="price-name">Pro</div>
+      <div><span class="price-amount">$9</span><span class="price-period">/mo</span></div>
+      <ul class="price-features">
+        <li>Unlimited</li>
+        <li>All 8 types</li>
+        <li>TikTok</li>
+        <li>Amazon</li>
+        <li>Email x5</li>
+        <li>Pinterest</li>
+        <li>YouTube</li>
+      </ul>
+      <a href="https://payhip.com/AmiisukyokCreatives" target="_blank" class="price-cta highlight-cta">Buy Pro →</a>
+    </div>
+
+    <div class="price-card">
+      <div class="price-name">Business</div>
+      <div><span class="price-amount">$19</span><span class="price-period">/mo</span></div>
+      <ul class="price-features">
+        <li>All Pro</li>
+        <li>Team key</li>
+        <li>API access</li>
+        <li>White-label</li>
+        <li>Priority support</li>
+      </ul>
+      <a href="https://payhip.com/AmiisukyokCreatives" target="_blank" class="price-cta">Buy Biz →</a>
+    </div>
+  </div>
+
+  <div class="msg info">
+    After buying on Payhip, go to the <strong>Activate</strong> tab and enter your key to unlock instantly.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     VIEW: PRIVACY
+═══════════════════════════════════════════════ -->
+<div id="view-privacy" class="content hidden">
+  <div style="font-size:15px; font-weight:600; margin-bottom:4px">Privacy Policy</div>
+  <div style="font-size:11px; color:var(--txt2); margin-bottom:12px">Last updated: June 2026 · Amiisukyok Creatives</div>
+
+  <div class="privacy-section">
+    <div class="privacy-title">What we collect</div>
+    <div class="privacy-body">We collect only the minimum to operate the service. Your product descriptions are sent directly to the Anthropic Claude API to generate your copy. Inputs are not stored after your session ends. License keys are verified locally inside the extension — no personal data is sent to any server.</div>
+  </div>
+  <div class="privacy-section">
+    <div class="privacy-title">How your data is used</div>
+    <div class="privacy-body">Inputs are processed solely to generate your requested copy. We do not sell, share, or rent your data. Plan tier and daily usage are stored locally using Chrome's storage.sync — never sent to our servers.</div>
+  </div>
+  <div class="privacy-section">
+    <div class="privacy-title">API key security</div>
+    <div class="privacy-body">The Anthropic API key is embedded in the extension's background service worker and is used solely to call the Claude API on your behalf. All AI generation happens via a direct encrypted connection to Anthropic — no third-party proxy or backend is involved.</div>
+  </div>
+  <div class="privacy-section">
+    <div class="privacy-title">Payments</div>
+    <div class="privacy-body">Payments are processed by Payhip. We never see or store your card details. Your billing information is governed by Payhip's privacy policy.</div>
+  </div>
+  <div class="privacy-section">
+    <div class="privacy-title">Your rights</div>
+    <div class="privacy-body">You can clear all local data at any time by uninstalling the extension or clearing Chrome's extension storage. To request account deletion, email privacy@amiisukyokcreatives.com.</div>
+  </div>
+  <div class="privacy-section">
+    <div class="privacy-title">Contact</div>
+    <div class="privacy-body">privacy@amiisukyokcreatives.com · kyokusiimadiana.com</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════ -->
+<div class="footer">
+  <span>© 2026 Amiisukyok Creatives</span>
+  <div>
+    <button onclick="showView('privacy')">Privacy</button>
+    <button onclick="showView('pricing')">Pricing</button>
+    <button onclick="showView('activate')">Activate</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     UPGRADE MODAL
+═══════════════════════════════════════════════ -->
+<div id="upgradeModal" class="modal-overlay hidden">
+  <div class="modal">
+    <div class="modal-title">Upgrade to continue</div>
+    <div class="modal-body" id="upgradeReason">This feature requires a Pro plan.</div>
+    <div class="modal-actions">
+      <a href="https://payhip.com/AmiisukyokCreatives" target="_blank" class="action-btn" style="text-align:center; text-decoration:none; display:block;">
+        Buy Pro on Payhip — $9/month
+      </a>
+      <button class="action-btn secondary" onclick="closeModal(); showView('activate')">
+        I have a key — Activate it
+      </button>
+      <button onclick="closeModal()" style="font-size:12px; color:var(--txt2); background:none; border:none; cursor:pointer; padding:4px 0; font-family:var(--font);">
+        Continue with free plan
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+const OUTPUT_TYPES = [
+  { value: "kdp",       label: "📚 KDP Book",       pro: false },
+  { value: "payhip",    label: "🛒 Payhip Product",  pro: false },
+  { value: "instagram", label: "📸 Instagram",       pro: false },
+  { value: "tiktok",    label: "🎵 TikTok",          pro: true  },
+  { value: "amazon",    label: "📦 Amazon Bullets",  pro: true  },
+  { value: "email",     label: "✉️ Email Subjects",  pro: true  },
+  { value: "pinterest", label: "📌 Pinterest",       pro: true  },
+  { value: "youtube",   label: "▶️ YouTube",         pro: true  },
+];
+
+const TONES = ["Professional", "Conversational", "Bold & Punchy", "Warm & Inspiring", "Minimalist"];
+
+const PLACEHOLDERS = {
+  kdp:       "e.g. A self-help book for women who struggle with self-worth and setting boundaries...",
+  payhip:    "e.g. A Canva template pack with 30 social media post designs for coaches...",
+  instagram: "e.g. New digital product launch — AI productivity guide for solopreneurs...",
+  tiktok:    "e.g. Quick morning routine for entrepreneurs that saves 2 hours every day...",
+  amazon:    "e.g. Reusable water bottle with temperature display and BPA-free stainless steel...",
+  email:     "e.g. Flash sale on my new self-help book bundle — 48 hours only...",
+  pinterest: "e.g. Free meal prep printable for busy moms — 5 dinners in 1 hour...",
+  youtube:   "e.g. How I made $3k in 30 days selling digital products on Payhip...",
+};
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let state = {
+  plan: "free",
+  usageToday: 0,
+  usageDate: "",
+  selectedType: "kdp",
+  selectedTone: "Professional",
+  result: "",
+  loading: false,
+};
+
+// ═══════════════════════════════════════════════
+// INIT — load from chrome.storage
+// ═══════════════════════════════════════════════
+document.addEventListener("DOMContentLoaded", async () => {
+  buildTypeGrid();
+  buildToneWrap();
+  setupNavListeners();
+
+  const data = await chrome.storage.sync.get(["cc_plan", "cc_usage_date", "cc_usage_count"]);
+  const today = new Date().toDateString();
+
+  state.plan = data.cc_plan || "free";
+  state.usageDate = data.cc_usage_date || today;
+  state.usageToday = state.usageDate === today ? (data.cc_usage_count || 0) : 0;
+  if (state.usageDate !== today) {
+    await chrome.storage.sync.set({ cc_usage_date: today, cc_usage_count: 0 });
+    state.usageDate = today;
+  }
+
+  updateUI();
+});
+
+// ═══════════════════════════════════════════════
+// BUILD UI
+// ═══════════════════════════════════════════════
+function buildTypeGrid() {
+  const grid = document.getElementById("typeGrid");
+  grid.innerHTML = "";
+  OUTPUT_TYPES.forEach(t => {
+    const btn = document.createElement("button");
+    btn.className = "type-btn" + (t.value === state.selectedType ? " active" : "") + (t.pro && state.plan === "free" ? " locked" : "");
+    btn.dataset.value = t.value;
+    btn.innerHTML = `<div class="type-name">${t.label}</div>${t.pro && state.plan === "free" ? '<div class="type-pro">Pro only</div>' : ''}`;
+    btn.addEventListener("click", () => {
+      state.selectedType = t.value;
+      document.getElementById("inputText").placeholder = PLACEHOLDERS[t.value] || "";
+      buildTypeGrid();
+    });
+    grid.appendChild(btn);
+  });
+}
+
+function buildToneWrap() {
+  const wrap = document.getElementById("toneWrap");
+  wrap.innerHTML = "";
+  TONES.forEach(t => {
+    const btn = document.createElement("button");
+    btn.className = "tone-btn" + (t === state.selectedTone ? " active" : "");
+    btn.textContent = t;
+    btn.addEventListener("click", () => {
+      state.selectedTone = t;
+      buildToneWrap();
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+function setupNavListeners() {
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => showView(btn.dataset.view));
+  });
+}
+
+// ═══════════════════════════════════════════════
+// VIEW SWITCHING
+// ═══════════════════════════════════════════════
+function showView(name) {
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add("hidden"));
+  document.querySelectorAll(".nav-btn").forEach(btn => btn.classList.remove("active"));
+  document.getElementById(`view-${name}`)?.classList.remove("hidden");
+  document.querySelector(`.nav-btn[data-view="${name}"]`)?.classList.add("active");
+}
+
+// ═══════════════════════════════════════════════
+// UPDATE UI STATE
+// ═══════════════════════════════════════════════
+function updateUI() {
+  const badge = document.getElementById("planBadge");
+  const remaining = Math.max(0, 3 - state.usageToday);
+  badge.textContent = state.plan === "free" ? "Free plan" : state.plan === "pro" ? "Pro ✓" : "Business ✓";
+  badge.className = "plan-badge" + (state.plan !== "free" ? " pro" : "");
+
+  const usageBar = document.getElementById("usageBar");
+  const usageText = document.getElementById("usageText");
+  if (state.plan === "free") {
+    usageBar.classList.remove("hidden");
+    usageText.textContent = `${remaining} free generation${remaining !== 1 ? "s" : ""} left today`;
+  } else {
+    usageBar.classList.add("hidden");
+  }
+
+  // Activate view plan status
+  document.getElementById("currentPlanLabel").textContent = state.plan.charAt(0).toUpperCase() + state.plan.slice(1);
+  document.getElementById("planStatus").textContent = state.plan === "free"
+    ? "3 generations/day · KDP, Payhip & Instagram only."
+    : "Unlimited generations · All 8 output types unlocked. ✓";
+
+  buildTypeGrid();
+}
+
+// ═══════════════════════════════════════════════
+// GENERATE
+// ═══════════════════════════════════════════════
+async function handleGenerate() {
+  const input = document.getElementById("inputText").value.trim();
+  const errEl = document.getElementById("genError");
+  errEl.classList.add("hidden");
+
+  if (!input) {
+    showError(errEl, "Please describe your product or topic first.");
+    return;
+  }
+
+  const selectedTypeDef = OUTPUT_TYPES.find(t => t.value === state.selectedType);
+  if (selectedTypeDef?.pro && state.plan === "free") {
+    document.getElementById("upgradeReason").textContent = `${selectedTypeDef.label.replace(/[^\w\s]/g, "")} is a Pro feature. Upgrade to unlock all 8 output types.`;
+    document.getElementById("upgradeModal").classList.remove("hidden");
+    return;
+  }
+
+  if (state.plan === "free" && state.usageToday >= 3) {
+    document.getElementById("upgradeReason").textContent = "You've used all 3 free generations today. Upgrade to Pro for unlimited generations.";
+    document.getElementById("upgradeModal").classList.remove("hidden");
+    return;
+  }
+
+  setLoading(true);
+  document.getElementById("resultBox").classList.add("hidden");
+
+  chrome.runtime.sendMessage({
+    type: "GENERATE",
+    payload: { outputType: state.selectedType, tone: state.selectedTone, input, plan: state.plan }
+  }, async (response) => {
+    setLoading(false);
+    if (chrome.runtime.lastError || !response) {
+      showError(errEl, "Connection error. Make sure you're online and try again.");
+      return;
+    }
+    if (response.error) {
+      if (response.requiresUpgrade) {
+        document.getElementById("upgradeReason").textContent = response.error;
+        document.getElementById("upgradeModal").classList.remove("hidden");
+      } else {
+        showError(errEl, response.error);
+      }
+      return;
+    }
+    if (response.result) {
+      state.result = response.result;
+      document.getElementById("resultText").textContent = response.result;
+      document.getElementById("resultBox").classList.remove("hidden");
+      document.getElementById("copyBtn").textContent = "Copy";
+      document.getElementById("copyBtn").className = "copy-btn";
+
+      // Track usage
+      state.usageToday++;
+      await chrome.storage.sync.set({ cc_usage_count: state.usageToday, cc_usage_date: new Date().toDateString() });
+      updateUI();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// ACTIVATE LICENSE
+// ═══════════════════════════════════════════════
+function handleActivate() {
+  const key = document.getElementById("licenseInput").value.trim();
+  const msgEl = document.getElementById("licenseMsg");
+  if (!key) {
+    showMsg(msgEl, "Please enter your license key.", "err");
+    return;
+  }
+
+  document.getElementById("activateBtn").disabled = true;
+  document.getElementById("activateBtn").innerHTML = '<span class="spinner"></span>Checking...';
+
+  chrome.runtime.sendMessage({ type: "VERIFY_LICENSE", payload: { licenseKey: key } }, async (response) => {
+    document.getElementById("activateBtn").disabled = false;
+    document.getElementById("activateBtn").textContent = "Activate key";
+
+    if (chrome.runtime.lastError || !response) {
+      showMsg(msgEl, "Could not verify key. Check your connection.", "err");
+      return;
+    }
+    if (response.error && !response.valid) {
+      showMsg(msgEl, response.error || "Invalid key.", "err");
+      return;
+    }
+    if (response.valid) {
+      state.plan = response.plan;
+      await chrome.storage.sync.set({ cc_plan: response.plan });
+      showMsg(msgEl, response.message || "Plan activated!", "ok");
+      document.getElementById("licenseInput").value = "";
+      updateUI();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════
+// COPY
+// ═══════════════════════════════════════════════
+function handleCopy() {
+  if (!state.result) return;
+  navigator.clipboard.writeText(state.result).then(() => {
+    const btn = document.getElementById("copyBtn");
+    btn.textContent = "✓ Copied";
+    btn.className = "copy-btn copied";
+    setTimeout(() => { btn.textContent = "Copy"; btn.className = "copy-btn"; }, 2000);
+  });
+}
+
+// ═══════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════
+function closeModal() {
+  document.getElementById("upgradeModal").classList.add("hidden");
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function setLoading(on) {
+  state.loading = on;
+  const btn = document.getElementById("genBtn");
+  btn.disabled = on;
+  btn.innerHTML = on ? '<span class="spinner"></span>Generating...' : "✦ Generate Copy";
+}
+
+function showError(el, msg) {
+  el.textContent = "⚠ " + msg;
+  el.classList.remove("hidden");
+}
+
+function showMsg(el, msg, type) {
+  el.textContent = (type === "ok" ? "✓ " : "⚠ ") + msg;
+  el.className = `msg ${type}`;
+  el.classList.remove("hidden");
+}
+</script>
+</body>
+</html>
